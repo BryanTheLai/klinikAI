@@ -2,6 +2,7 @@ import { generateText, convertToModelMessages, tool, stepCountIs } from "ai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
 import { TriageResultSchema } from "@/lib/types"
+import { getBaseUrl } from "@/lib/utils"
 
 export const maxDuration = 30
 
@@ -114,7 +115,7 @@ Think like a healthcare professional - prioritize patient safety and appropriate
             try {
               console.log("Getting clinic recommendations for:", { specialty, urgency })
               
-              const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/clinic-recommendations`, {
+              const response = await fetch(`${getBaseUrl()}/api/clinic-recommendations`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ specialty, urgency }),
@@ -167,7 +168,7 @@ Think like a healthcare professional - prioritize patient safety and appropriate
                 nextStepForPatient: nextStepForPatient || "Please arrive 15 minutes early for your appointment"
               }
 
-              const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/book-appointment`, {
+              const response = await fetch(`${getBaseUrl()}/api/book-appointment`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ clinicId, triageResult }),
