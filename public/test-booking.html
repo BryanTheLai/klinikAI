@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KlinikAI Booking Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-section { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .result { background: white; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #0066cc; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        button { background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0052a3; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🏥 KlinikAI Booking Flow Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Scenario: Nosebleed Symptom</h2>
+        <p>This test simulates a user saying "I have nose bleed" and verifies that the agent:</p>
+        <ul>
+            <li>✓ Performs medical triage</li>
+            <li>✓ Identifies ENT specialty need</li>
+            <li>✓ Finds relevant clinics</li>
+            <li>✓ Offers to book appointment</li>
+        </ul>
+        
+        <button onclick="runBookingTest()">🚀 Run Booking Test</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        async function runBookingTest() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>🔄 Running test...</p>';
+            
+            try {
+                // Test the chat API with nosebleed symptom
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: 'I have nose bleed' }
+                        ]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                let results = '<h3>📋 Test Results</h3>';
+                
+                // Check if we got a response
+                if (data.response) {
+                    results += '<div class="result success">✅ Agent responded successfully</div>';
+                    
+                    const responseText = data.response.toLowerCase();
+                    
+                    // Check for medical triage
+                    if (responseText.includes('ent') || responseText.includes('ear') || responseText.includes('nose') || responseText.includes('throat')) {
+                        results += '<div class="result success">✅ Agent identified ENT specialty</div>';
+                    } else {
+                        results += '<div class="result error">❌ Agent did not identify ENT specialty</div>';
+                    }
+                    
+                    // Check for clinic recommendations
+                    if (responseText.includes('clinic') || responseText.includes('hospital')) {
+                        results += '<div class="result success">✅ Agent provided clinic recommendations</div>';
+                    } else {
+                        results += '<div class="result error">❌ Agent did not provide clinic recommendations</div>';
+                    }
+                    
+                    // Check for booking offer
+                    if (responseText.includes('book') || responseText.includes('appointment')) {
+                        results += '<div class="result success">✅ Agent offered booking assistance</div>';
+                    } else {
+                        results += '<div class="result error">❌ Agent did not offer booking assistance</div>';
+                    }
+                    
+                    // Show full response
+                    results += '<h4>🤖 Full Agent Response:</h4>';
+                    results += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                } else {
+                    results += '<div class="result error">❌ No response from agent</div>';
+                }
+                
+                resultsDiv.innerHTML = results;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Test failed: ${error.message}
+                    </div>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -24,12 +24,12 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Your AI-Powered Healthcare Navigator</h2>
+          {/* <h2 className="text-4xl font-bold text-gray-900 mb-4">Your AI-Powered Healthcare Navigator</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Get personalized medical guidance, find the right specialists, and book appointments seamlessly in Malaysia.
-          </p>
+          </p> */}
 
-          <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
+          {/* <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
               <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Triage</h3>
@@ -47,7 +47,7 @@ export default function HomePage() {
               <h3 className="font-semibold text-gray-900 mb-2">Multilingual Support</h3>
               <p className="text-gray-600 text-sm">Available in English, Bahasa Malaysia, and Chinese</p>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <ChatInterface />

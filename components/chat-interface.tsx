@@ -1,24 +1,19 @@
 "use client"
 
-import { useChat } from "ai/react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Send, Bot, User, AlertCircle } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
-import { useEffect, useRef } from "react"
 
 export function ChatInterface() {
   const { language, t } = useLanguage()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: "/api/chat",
-    body: { language },
-    onError: (error) => {
-      console.error("Chat error:", error)
-    },
-  })
+  const [input, setInput] = useState("")
+  const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; content: string }>>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -27,6 +22,65 @@ export function ChatInterface() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user" as const,
+      content: input.trim()
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            ...messages.map(msg => ({
+              parts: [{ type: "text", text: msg.content }],
+              id: msg.id,
+              role: msg.role
+            })),
+            {
+              parts: [{ type: "text", text: userMessage.content }],
+              id: userMessage.id,
+              role: userMessage.role
+            }
+          ],
+          language,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send message")
+      }
+
+      const data = await response.json()
+      
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant" as const,
+        content: data.response || "I apologize, but I couldn't process your request at the moment."
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (err) {
+      console.error("Chat error:", err)
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="flex flex-col h-[600px] max-w-4xl mx-auto">
@@ -37,7 +91,7 @@ export function ChatInterface() {
               <Bot className="h-12 w-12 mx-auto mb-4 text-blue-600" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("welcome")}</h3>
               <p className="text-gray-600">{t("subtitle")}</p>
-              <p className="text-sm text-gray-500 mt-2">Try saying: "I have foot pain" or "I have a headache"</p>
+              <p className="text-sm text-gray-500 mt-2">Try saying: "I have nose bleed" or "I have a headache"</p>
             </CardContent>
           </Card>
         )}
@@ -49,7 +103,7 @@ export function ChatInterface() {
                 <AlertCircle className="h-5 w-5" />
                 <div>
                   <p className="font-medium">Connection Error</p>
-                  <p className="text-sm">{error.message || "Please check your configuration and try again."}</p>
+                  <p className="text-sm">{error}</p>
                 </div>
               </div>
             </CardContent>
@@ -57,26 +111,23 @@ export function ChatInterface() {
         )}
 
         {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`flex max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-              <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.role === "user" ? "bg-blue-600 text-white ml-2" : "bg-gray-200 text-gray-600 mr-2"
-                }`}
-              >
-                {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-              </div>
-              <div
-                className={`rounded-lg px-4 py-2 ${
-                  message.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
-                }`}
-              >
-                <div className="whitespace-pre-wrap">{message.content}</div>
-                {message.toolInvocations?.map((toolInvocation) => (
-                  <div key={toolInvocation.toolCallId} className="mt-2">
-                    {toolInvocation.result}
-                  </div>
-                ))}
+          <div key={message.id} className="space-y-4">
+            <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`flex max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.role === "user" ? "bg-blue-600 text-white ml-2" : "bg-gray-200 text-gray-600 mr-2"
+                  }`}
+                >
+                  {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                </div>
+                <div
+                  className={`rounded-lg px-4 py-2 ${
+                    message.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -108,7 +159,7 @@ export function ChatInterface() {
         <div className="flex space-x-2">
           <Input
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             placeholder={t("chatPlaceholder")}
             disabled={isLoading}
             className="flex-1"

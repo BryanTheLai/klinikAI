@@ -6,33 +6,54 @@ export async function POST(req: NextRequest) {
     const { clinicId, triageResult } = await req.json()
     const supabase = createServerClient()
 
-    // For demo purposes, we'll create a mock appointment
-    // In a real app, you'd have proper user authentication
-    const mockUserId = "00000000-0000-0000-0000-000000000000"
+    // Check if clinic exists
+    const { data: clinic, error: clinicError } = await supabase
+      .from("clinics")
+      .select("id, name")
+      .eq("id", clinicId)
+      .single()
 
-    // Create appointment
+    if (clinicError || !clinic) {
+      return NextResponse.json({ error: "Clinic not found" }, { status: 404 })
+    }
+
+    // For now, use a test patient ID - in production you'd get this from auth
+    const testPatientId = "00000000-0000-0000-0000-000000000001"
+
+    // Create appointment scheduled for next business day
     const appointmentTime = new Date()
-    appointmentTime.setHours(appointmentTime.getHours() + 24) // Next day
+    appointmentTime.setDate(appointmentTime.getDate() + 1)
+    appointmentTime.setHours(9, 0, 0, 0) // 9 AM next day
 
     const appointmentData = {
-      patient_id: mockUserId,
+      patient_id: testPatientId,
       clinic_id: clinicId,
       appointment_time: appointmentTime.toISOString(),
       status: "CONFIRMED" as const,
       triage_summary: triageResult?.summaryForClinician || "Patient consultation requested",
-      patient_instructions: triageResult?.nextStepForPatient || "Please arrive 15 minutes early",
+      patient_instructions: triageResult?.nextStepForPatient || "Please arrive 15 minutes early for your appointment",
       triage_payload: triageResult || {},
     }
 
-    // For demo, we'll just return success without actually inserting
-    // since we don't have a real user session
-    console.log("Would create appointment:", appointmentData)
+    // Actually insert the appointment
+    const { data: appointment, error } = await supabase
+      .from("appointments")
+      .insert(appointmentData)
+      .select("*")
+      .single()
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
       appointment: {
-        id: "demo-appointment-id",
-        ...appointmentData,
+        id: appointment.id,
+        clinic: clinic.name,
+        appointmentTime: appointment.appointment_time,
+        instructions: appointment.patient_instructions,
       },
     })
   } catch (error) {

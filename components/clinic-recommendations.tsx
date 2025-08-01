@@ -34,12 +34,17 @@ export function ClinicRecommendations({ clinics, triageResult }: ClinicRecommend
         }),
       })
 
-      if (response.ok) {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         // Handle successful booking
-        alert("Appointment booked successfully!")
+        alert(`✅ Appointment booked successfully!\n\n📅 ${data.appointment.clinic}\n🕘 ${new Date(data.appointment.appointmentTime).toLocaleString()}\n\n📋 ${data.appointment.instructions}`)
+      } else {
+        alert(`❌ Failed to book appointment: ${data.error}`)
       }
     } catch (error) {
       console.error("Booking error:", error)
+      alert("❌ Failed to book appointment. Please try again.")
     } finally {
       setBookingStates((prev) => ({ ...prev, [clinicId]: false }))
     }
